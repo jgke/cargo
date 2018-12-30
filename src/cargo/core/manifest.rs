@@ -733,7 +733,7 @@ impl Target {
         self.doc
     }
     pub fn for_host(&self) -> bool {
-        self.for_host
+        self.for_host || self.is_dylib()
     }
     pub fn edition(&self) -> Edition {
         self.edition
