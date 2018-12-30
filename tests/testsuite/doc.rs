@@ -371,6 +371,73 @@ fn doc_multiple_targets_same_name_undoced() {
 }
 
 #[test]
+fn doc_dylib_as_a_plugin_dependency() {
+    if !support::is_nightly() {
+        // Stable Rust doesn't have support for plugins
+        return;
+    }
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "0.0.1"
+            authors = []
+
+            [dependencies.bar]
+            path = "bar"
+        "#,
+        )
+        .file(
+            "src/main.rs",
+            r#"
+            #![feature(plugin)]
+            #![plugin(bar)]
+
+            fn main() {}
+        "#,
+        )
+        .file(
+            "bar/Cargo.toml",
+            r#"
+            [package]
+            name = "bar"
+            version = "0.0.1"
+            authors = []
+
+            [lib]
+            name = "bar"
+            crate_type = ["dylib"]
+        "#,
+        )
+        .file("bar/src/lib.rs", r"
+            #![feature(plugin_registrar, rustc_private)]
+
+            extern crate rustc_plugin;
+            use rustc_plugin::Registry;
+
+            #[plugin_registrar]
+            pub fn plugin_registrar(_: &mut Registry) {}
+",
+        )
+        .build();
+
+    p.cargo("doc")
+        .with_stderr_contains("[COMPILING] bar v0.0.1 ([CWD]/bar)")
+        .with_stderr_contains("[DOCUMENTING] bar v0.0.1 ([CWD]/bar)")
+        .with_stderr_contains("[DOCUMENTING] foo v0.0.1 ([CWD])")
+        .with_stderr_contains("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .run();
+    p.root().move_into_the_past();
+    p.cargo("doc")
+        .with_stderr_contains("[DOCUMENTING] bar v0.0.1 ([CWD]/bar)")
+        .with_stderr_contains("[DOCUMENTING] foo v0.0.1 ([CWD])")
+        .with_stderr_contains("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .run();
+}
+
+#[test]
 fn doc_lib_bin_same_name_documents_lib() {
     let p = project()
         .file(
