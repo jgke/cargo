@@ -1134,6 +1134,80 @@ fn test_dylib() {
 }
 
 #[test]
+fn test_dylib_plain() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "0.0.1"
+            authors = []
+
+            [lib]
+            crate_type = ["dylib"]
+
+            [dependencies]
+        "#,
+        )
+        .file(
+            "src/lib.rs",
+            r#""#,
+        )
+        .file(
+            "tests/test.rs",
+            r#"
+            extern crate foo;
+        "#,
+        )
+        .build();
+
+    p.cargo("test")
+        .with_stderr(
+            "\
+[COMPILING] foo v0.0.1 ([CWD])
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[RUNNING] target/debug/deps/foo-[..][EXE]
+[RUNNING] target/debug/deps/test-[..][EXE]",
+        )
+        .with_stdout(
+            "
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+\n",
+        )
+        .run();
+
+    p.root().move_into_the_past();
+    p.cargo("test")
+        .with_stderr(
+            "\
+[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[RUNNING] target/debug/deps/foo-[..][EXE]
+[RUNNING] target/debug/deps/test-[..][EXE]",
+        )
+        .with_stdout(
+            "
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+\n",
+        )
+        .run();
+}
+
+#[test]
 fn test_twice_with_build_cmd() {
     let p = project()
         .file(
